@@ -1,8 +1,21 @@
 'use strict';
 
+// 1) récupération id produit
 const productId = retrieveID();
-//console.log(' id :', productId );
 
+// 2) remplissage du contenu de la page avec les informations produits récupérées via l'API 
+fillProduct();
+
+// 3) gestion de l'ajout au panier
+document
+    .getElementById('addToCart')
+    .addEventListener('click', toCart) ;
+
+
+/**
+* Récupère un ID transmis dans l'URL
+* @return { String } (id) - id produit récupéré dans l'URL (s'il existe)
+*/
 function retrieveID() {
     const searchParams = new URLSearchParams(window.location.search);
 
@@ -12,13 +25,17 @@ function retrieveID() {
     }
 }
 
-fillProduct();
-
+/**
+* Récupère les informations du produit via l'API et les ajoute au contenu de la page
+*/  
 async function fillProduct() {
-    let newImg = document.createElement('img');
+
+    // Récupèration des infos du produit sur l'API à partir de l'ID produit
     const product = await retrieveApiByID(productId);
 
-    // création image du canapé 
+    // ----- création et ajout des différents éléments HTML
+    // création image du canapé
+    let newImg = document.createElement('img'); 
     newImg.setAttribute('src', product.imageUrl);
     newImg.setAttribute('alt', product.altTxt);
     document
@@ -35,7 +52,7 @@ async function fillProduct() {
         .getElementById('description')
         .textContent = product.description;
 
-    // prix // icijco à mettre avec virgule ?
+    // prix 
     document
         .getElementById('price')
         .textContent = product.price;
@@ -51,13 +68,20 @@ async function fillProduct() {
     document
         .getElementById('colors')
         .appendChild(fragmentColors);
+
+    //----- fin ajout éléments HTML
 }
 
+/**
+* Récupère les informations d'un produit donné via GET API (à partir de l'id du produit):
+* @param { String } id - id du produit
+* @return { Object } product - produit 
+*/
 async function retrieveApiByID(Id) {
     try {
         const response = await fetch('http://localhost:3000/api/products/' + Id);
         const product = await response.json();
-        console.log(product);
+        console.log('produit récupéré / API : ', product);
         return product;
     }
     catch (error) {
@@ -66,75 +90,107 @@ async function retrieveApiByID(Id) {
 }
 
 
-let DataAreValid = false;
-document
-    .getElementById('addToCart')
-    .addEventListener('click', toCart) ;
-
+/**
+    * Gère la demande d'ajout au panier : 
+    *   - vérification de la bonne saisie de la couleur 
+    *   - vérification de la bonne saisie de la quantité
+    *   - si OK: 
+    *       - création d'un nouvel élément
+    *       - ajout de l'élément au panier (ou maj quantité si déjà présent dans le panier)
+    */
 function toCart() {
-    console.log('entrée dans toCart ');
-//    await fillProduct();
     let colorInput = document.getElementById('colors');
     let quantityInput = document.getElementById('quantity');
-    checkColorInput(colorInput.value);
-    if (DataAreValid) {
-        checkQuantityInput(quantityInput.value);
-    }
-    if (DataAreValid) {
-//        createCartItem(productId, colorInput.value, Number(quantityInput.value) );
-        let cartItem = new Cartitem(productId, colorInput.value, Number(quantityInput.value));
-        addCart(cartItem);
-    }
-}
 
-function checkColorInput(colorInput) {
-    if (colorInput == '' ) {
-        DataAreValid = false;
-        alert('Veuillez sélectionner une couleur');
+    // si couleur ok, on vérifie la quantité
+    if (checkColorInput(colorInput.value) == true) {
+        // si quantité ok, on crée un nouvel élément qu'on rajoute au panier
+        if (checkQuantityInput(quantityInput.value) == true) {
+            let cartItem = new Cartitem(productId, colorInput.value, Number(quantityInput.value));
+            addCart(cartItem);
+        } else {
+            quantityInput.focus();
+        }
     } else {
-        DataAreValid = true;
-        console.log('couleur valide!');
-        }        
-}
-function checkQuantityInput(quantityInput) {
-    if ( (/[^0-9]/.test(quantityInput)) || (Number.isInteger(Number(quantityInput)) == false) || (quantityInput == '') ) {
-        DataAreValid = false;
-        alert('La quantité doit être un entier entre 1 et 100');
-    } else if (quantityInput == 0) {
-        DataAreValid = false;
-        alert('Veuillez choisir une quantité');
-    } else if (quantityInput < 1 || quantityInput > 100) {
-        DataAreValid = false;
-        alert('Veuillez saisir une quantité entre 1 et 100');
-    } else {
-        DataAreValid = true;
-        console.log('quantité valide!');
-    }   
-}
-
-function addCart(cartItem) {
-    // on récupère le panier s'il existe, sinon on récupère un tableau vide
-    let cart = retrieveCart();
-
-    // on test si l'élément est déja présent (id + couleur) dans le panier
-    let searchedCartItem = cart.find(searchItem => ((searchItem.id == cartItem.id) && (searchItem.color == cartItem.color) ));
-    if (searchedCartItem == undefined) {
-        //si pas déja présent on l'ajoute
-        cart.push(cartItem);
-    }else {
-        //si présent on met à jour la quantité
-        searchedCartItem.quantity += cartItem.quantity; 
+        document
+            .getElementById('colors')
+            .focus();
     }
-    // on enregistre le panier
-    localStorage.setItem('cart', JSON.stringify(cart));
-}
 
-function retrieveCart() {
-    let retrievedCart= JSON.parse(localStorage.getItem('cart'));
-    if (retrievedCart == null) {
-        return [];
-    } else {
-        return retrievedCart;
+    /**
+    * Vérifie la couleur choisie : doit être renseignée
+    * @param { String } colorInput - couleur choisie
+    * @return { Boolean } DataAreValid - renvoie true si couleur correctement renseignée
+    */
+    function checkColorInput(colorInput) {
+        let DataAreValid = false;
+        if (colorInput == '' ) {
+            alert('Veuillez sélectionner une couleur');
+        } else {
+            DataAreValid = true;
+            //console.log('couleur valide!');
+        }
+        return DataAreValid;         
+    }
+    /**
+    * Vérifie la quantité saisie : doit être un entier compris entre 1 et 100
+    * @param { String } quantityInput - quantité saisie
+    * @return { Boolean } DataAreValid - renvoie true si quantité correctement renseignée
+    */
+    function checkQuantityInput(quantityInput) {
+        let DataAreValid = false; 
+        // vérification du format 
+        if ( (/[^0-9]/.test(quantityInput)) || (Number.isInteger(Number(quantityInput)) == false) || (quantityInput == '') ) {
+            alert('La quantité doit être un entier entre 1 et 100');
+        } else if (quantityInput == 0) {
+            alert('Veuillez choisir une quantité > 0');
+        } else if (quantityInput < 1 || quantityInput > 100) {
+            alert('Veuillez saisir une quantité entre 1 et 100');
+        } else {
+            DataAreValid = true;
+            //console.log('quantité valide!');
+        }
+        return DataAreValid;   
+    }
+
+    /**
+    * Ajoute un élement au panier :
+    *   - on récupère le panier (stocké dans le local storage) et on vérifie si l'élément y est déjà :
+            - si absent : on l'ajoute au panier
+            - si présent : on met à jour la quantité
+    *   - On enregistre le panier modifié dans le local storage
+    * @param { Object } cartitem - un élément du panier
+    */
+    function addCart(cartItem) {
+        // on récupère le panier s'il existe, sinon on récupère un tableau vide
+        let cart = retrieveCart();
+
+        // on teste si l'élément (id + couleur) est déja présent dans le panier
+        let searchedCartItem = cart.find(searchItem => ((searchItem.id == cartItem.id) && (searchItem.color == cartItem.color) ));
+        if (searchedCartItem == undefined) {
+            //si pas déja présent on l'ajoute
+            cart.push(cartItem);
+        }else {
+            //si présent on met à jour la quantité
+            searchedCartItem.quantity += cartItem.quantity; 
+        }
+        // on enregistre le panier
+        localStorage.setItem('cart', JSON.stringify(cart));
+        console.log('nouvel élément ajouté => cart :', cart);
+        //alert('le produit a été ajouté au panier');
+
+        /**
+        * Récupère le panier stocké dans le locage storage 
+        * @return { Array } (retrievedCart) - panier stocké dans le locage storage. Si absent du localstorage, renvoie un tableau vide
+        */
+        function retrieveCart() {
+            let retrievedCart= JSON.parse(localStorage.getItem('cart'));
+            if (retrievedCart == null) {
+                return [];
+            } else {
+                return retrievedCart;
+            }
+        }
     }
 }
 
@@ -146,6 +202,8 @@ class Cartitem {
      }
 }
 
+
+/* ICIJCO  ------->   à virer 
 //function createCartItem(productId, color, quantity) {
 //    console.log('reste à créer panier');
     // code en dur pour tester
