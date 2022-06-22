@@ -11,9 +11,17 @@ retrieveDataApiAndFill();
 function retrieveDataApiAndFill() {
 
     fetch('http://localhost:3000/api/products')
-    .then (response => response.json())
+    
+    .then (response => {
+        // si l'API n'a pas traité la demande, on génère une erreur
+        if (!response.ok) {
+            throw new Error('status code retourné par l\'api non compris entre 200 et 299');
+        }
+        return response.json();
+    })
     .then (arrayProducts => fillContentPage(arrayProducts))
-    .catch (error => console.log ('erreur fetch api get : ', error));
+
+    .catch (error => msgErrorApi(error));
 }
 
 /**
@@ -66,4 +74,9 @@ function fillContentPage(arrayProducts)  {
     // insertion du fragment dans le DOM en une fois
     let itemsPosition = document.getElementById('items');
     itemsPosition.appendChild(fragmentItems);
+}
+
+function msgErrorApi(error) {
+    console.log ('erreur fetch api get "global": ', error);
+    alert('Erreur technique: echec de la récupération des informations produits');
 }

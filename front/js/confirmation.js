@@ -8,6 +8,8 @@ document
         .getElementById('orderId')
         .textContent = orderId;
 
+// 3) on devrait aussi supprimer le panier (non spécifié mais semblerait logique)
+// localStorage.removeItem('cart');
 
 /**
 * Récupère un ID transmis dans l'URL

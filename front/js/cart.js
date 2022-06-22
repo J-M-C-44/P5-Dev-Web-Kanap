@@ -3,18 +3,11 @@
  // 1) on récupère le panier stocké dans le locage storage
 let cart = retrieveCart();
 
-// 2) on trie le panier sur l'id : cela regroupe par id et couleurs 
-cart.sort(function compare(a, b) {
-    if (a.id < b.id)
-           return -1;
-    if (a.id > b.id )
-           return 1;
-        return 0;
-});
-console.log('cart trié: ', cart);
+// 2) on trie le panier sur l'id : cela regroupe par id et couleurs
+sortCart();
 
 // 3) on remplit le contenu de la page avec les différents éléments issus du panier 
-fillContent(cart);
+fillContent();
 
 // 4) on détecte la saisie du formulaire, on vérifie les saisies et si ok on passe la commande via POST API
 manageForm();
@@ -32,6 +25,19 @@ function retrieveCart() {
         return retrievedCart;
     }
 }
+/**
+* trie le panier sur l'id 
+*/
+function sortCart() {
+    cart.sort(function compare(a, b) {
+        if (a.id < b.id)
+               return -1;
+        if (a.id > b.id )
+               return 1;
+            return 0;
+    });
+    console.log('cart trié: ', cart);
+}
 
 /**
 * Remplit le contenu de la page avec les différents éléments contenus dans le panier, et affichage des totaux 
@@ -42,9 +48,8 @@ function retrieveCart() {
 *       - on crée les gestionnaires d'évènements sur l'input quantité et le "bouton" supprimer 
 *   - On insert le fragment dans le DOM
 *   - On affiche les totaux (quantité et prix)
-* @param { Object } cart - panier
 */
-async function fillContent(cart)  {
+async function fillContent()  {
 
     // fragment utilisé pour faire une insertion dans le DOM en une fois (/perf)  
     let fragmentItems = document.createDocumentFragment();
@@ -61,109 +66,11 @@ async function fillContent(cart)  {
         totalQuantity += cartItem.quantity;
         totalPrice += (cartItem.quantity * product.price);
         
-        // ------  on crée tous les éléments HTMLs qu'on ajoute au fragment :
+        // on crée tous les éléments HTMLs qu'on rattachera
+        createHtmlElementsAndListener(cartItem, product);    
+    }  
 
-        // création <article>
-        let newArticle = document.createElement('article');
-        newArticle.classList.add('cart__item');
-        newArticle.setAttribute('data-id', cartItem.id);
-        newArticle.setAttribute('data-color', cartItem.color);
-        fragmentItems.appendChild(newArticle);
-
-        // création 1ere <div> item_img
-        let newDiv1 = document.createElement('div');
-        newDiv1.classList.add('cart__item__img');
-        newArticle.appendChild(newDiv1);
-
-        // création <img> du canapé 
-        let newImg = document.createElement('img');
-        newImg.setAttribute('src', product.imageUrl);
-        newImg.setAttribute('alt',  product.altTxt );
-        newDiv1.appendChild(newImg);
-
-        // création <div> item_content
-        let newDiv2 = document.createElement('div');
-        newDiv2.classList.add('cart__item__content');
-        newArticle.appendChild(newDiv2);
-
-        // création <div> description
-        let newDiv2S1 = document.createElement('div');
-        newDiv2S1.classList.add('cart__item__content__description');
-        newDiv2.appendChild(newDiv2S1);
-
-        // création titre <h2> - nom canapé
-        let newH2 = document.createElement('h2'); 
-        newH2.textContent = product.name;
-        newDiv2S1.appendChild(newH2);
-
-        // création <p> couleur
-        let newP1 = document.createElement('p'); 
-        newP1.textContent = cartItem.color;
-        newDiv2S1.appendChild(newP1);
-
-        // création <p> prix
-        let newP2 = document.createElement('p'); 
-        newP2.textContent = (product.price + ' €');
-        newDiv2S1.appendChild(newP2);
-
-        // création <div> settings
-        let newDiv2S2 = document.createElement('div');
-        newDiv2S2.classList.add('cart__item__content__settings');
-        newDiv2.appendChild(newDiv2S2);
-
-         // création <div> quantité
-        let newDiv2S2S1 = document.createElement('div');
-        newDiv2S2S1.classList.add('cart__item__content__settings__quantity');  
-        newDiv2S2.appendChild(newDiv2S2S1);
-
-        // création <p> quantité
-        let newP3 = document.createElement('p');
-        newP3.textContent= 'Qté : ';
-        newDiv2S2S1.appendChild(newP3);
-         
-        // création <input> quantité
-        let newInput = document.createElement('input');
-        newInput.classList.add('itemQuantity');
-        newInput.setAttribute('type', 'number');
-        newInput.setAttribute('name', 'itemQuantity');
-        newInput.setAttribute('min', '1');
-        newInput.setAttribute('max', '100');
-        newInput.setAttribute('value', cartItem.quantity);
-        newDiv2S2S1.appendChild(newInput);
-
-        // gestion changement quantité
-        newInput.addEventListener('change', function (e) {
-
-            // si la nouvelle quantité saisie est valide, on la change  (mise à jour de la quantité du panier, recalcul et affichage des totaux) 
-            if (checkQuantityInput(e.target.value) == true) {
-                changeQuantity(cartItem.id, cartItem.color, Number(e.target.value), product.price);
-
-             // si la nouvelle quantité saisie est invalide : on positionne le focus et on remet la quantité d'origine
-            } else { 
-                newInput.focus();   // si la quantité n'est pas valide, on revient à celle d'origine
-                newInput.value = cartItem.quantity; 
-            }    
-        });
-
-         // création <div> supprimer
-        let newDiv2S2S2 = document.createElement('div');
-        newDiv2S2S2.classList.add('cart__item__content__settings__delete');  
-        newDiv2S2.appendChild(newDiv2S2S2);
-
-         // création <p> supprimer
-        let newP4 = document.createElement('p');
-        newP4.textContent= 'Supprimer';
-        newP4.classList.add('deleteItem');
-        newDiv2S2S2.appendChild(newP4);
-
-        // si "bouton" supprimer cliqué, on supprime l'élémént du panier, du DOM et on refait les calculs
-        newP4.addEventListener('click', () => {deleteItem(cartItem.id, cartItem.color, product.price);}) ;
-
-        // ------  fin création des éléments HTMLs
-    }
-    // fin boucle sur les éléments du panier   
-
-    // insertion du fragment global dans le DOM en une fois
+    // insertion du fragment dans le DOM en une fois
     let itemsPosition = document.getElementById('cart__items');
     itemsPosition.appendChild(fragmentItems);
   
@@ -179,15 +86,123 @@ async function fillContent(cart)  {
     async function retrieveApiByID(Id) {
         try {
             const response = await fetch('http://localhost:3000/api/products/' + Id);
+            if (!response.ok) {
+                throw new Error('status code retourné par l\'api non compris entre 200 et 299');
+            }
             const product = await response.json();
             console.log(product);
             return product;
         }
         catch (error) {
             console.log('erreur fetch api get /id : ', error);
+            alert('Erreur technique: echec de la récupération des informations produits');
         }
     }
-   
+
+/**
+    * Crée les différents éléments HTML et listeners pour un item du panier. Les rattache à un fragment (qui sera inséré plus tard)  
+    * @param { Object } cartItem - item du panier
+    * @param  { Object } product - produit 
+    */
+    function createHtmlElementsAndListener(cartItem, product) {
+         // création <article>
+         let newArticle = document.createElement('article');
+         newArticle.classList.add('cart__item');
+         newArticle.setAttribute('data-id', cartItem.id);
+         newArticle.setAttribute('data-color', cartItem.color);
+         fragmentItems.appendChild(newArticle);
+ 
+         // création 1ere <div> item_img
+         let newDiv1 = document.createElement('div');
+         newDiv1.classList.add('cart__item__img');
+         newArticle.appendChild(newDiv1);
+ 
+         // création <img> du canapé 
+         let newImg = document.createElement('img');
+         newImg.setAttribute('src', product.imageUrl);
+         newImg.setAttribute('alt',  product.altTxt );
+         newDiv1.appendChild(newImg);
+ 
+         // création <div> item_content
+         let newDiv2 = document.createElement('div');
+         newDiv2.classList.add('cart__item__content');
+         newArticle.appendChild(newDiv2);
+ 
+         // création <div> description
+         let newDiv2S1 = document.createElement('div');
+         newDiv2S1.classList.add('cart__item__content__description');
+         newDiv2.appendChild(newDiv2S1);
+ 
+         // création titre <h2> - nom canapé
+         let newH2 = document.createElement('h2'); 
+         newH2.textContent = product.name;
+         newDiv2S1.appendChild(newH2);
+ 
+         // création <p> couleur
+         let newP1 = document.createElement('p'); 
+         newP1.textContent = cartItem.color;
+         newDiv2S1.appendChild(newP1);
+ 
+         // création <p> prix
+         let newP2 = document.createElement('p'); 
+         newP2.textContent = (product.price + ' €');
+         newDiv2S1.appendChild(newP2);
+ 
+         // création <div> settings
+         let newDiv2S2 = document.createElement('div');
+         newDiv2S2.classList.add('cart__item__content__settings');
+         newDiv2.appendChild(newDiv2S2);
+ 
+          // création <div> quantité
+         let newDiv2S2S1 = document.createElement('div');
+         newDiv2S2S1.classList.add('cart__item__content__settings__quantity');  
+         newDiv2S2.appendChild(newDiv2S2S1);
+ 
+         // création <p> quantité
+         let newP3 = document.createElement('p');
+         newP3.textContent= 'Qté : ';
+         newDiv2S2S1.appendChild(newP3);
+          
+         // création <input> quantité
+         let newInput = document.createElement('input');
+         newInput.classList.add('itemQuantity');
+         newInput.setAttribute('type', 'number');
+         newInput.setAttribute('name', 'itemQuantity');
+         newInput.setAttribute('min', '1');
+         newInput.setAttribute('max', '100');
+         newInput.setAttribute('value', cartItem.quantity);
+         newDiv2S2S1.appendChild(newInput);
+ 
+         // gestion changement quantité
+         newInput.addEventListener('change', function (e) {
+ 
+             // si la nouvelle quantité saisie est valide, on la change  (mise à jour de la quantité du panier, recalcul et affichage des totaux) 
+             if (checkQuantityInput(e.target.value) == true) {
+                 changeQuantity(cartItem.id, cartItem.color, Number(e.target.value), product.price);
+ 
+              // si la nouvelle quantité saisie est invalide : on positionne le focus et on remet la quantité d'origine
+             } else { 
+                 newInput.focus();   // si la quantité n'est pas valide, on revient à celle d'origine
+                 newInput.value = cartItem.quantity; 
+             }    
+         });
+ 
+          // création <div> supprimer
+         let newDiv2S2S2 = document.createElement('div');
+         newDiv2S2S2.classList.add('cart__item__content__settings__delete');  
+         newDiv2S2.appendChild(newDiv2S2S2);
+ 
+          // création <p> supprimer
+         let newP4 = document.createElement('p');
+         newP4.textContent= 'Supprimer';
+         newP4.classList.add('deleteItem');
+         newDiv2S2S2.appendChild(newP4);
+ 
+         // si "bouton" supprimer cliqué, on supprime l'élémént du panier, du DOM et on refait les calculs
+         newP4.addEventListener('click', () => {deleteItem(cartItem.id, cartItem.color, product.price);}) ;
+ 
+    }
+
     /**
     * vérifie les nouvelles quantités saisies:
     *   si KO, on renvoie message d'erreur et on restaure la quantité d'origine
@@ -219,7 +234,7 @@ async function fillContent(cart)  {
     * @param { Number } price - prix du produit
     */
     function changeQuantity(id, color, newQuantity, price) {
-        console.log('changement quantité pour id: ', id, ', color: ', color, ', newQuantity: ', newQuantity, ' price: ', price);
+        //console.log('changement quantité pour id: ', id, ', color: ', color, ', newQuantity: ', newQuantity, ' price: ', price);
         let oldQuantity = 0;
         // recherche élément correspondant dans le panier + maj
         let searchedCartItem = cart.find(searchItem => ((searchItem.id == id) && (searchItem.color == color) ));
@@ -231,7 +246,7 @@ async function fillContent(cart)  {
             searchedCartItem.quantity = newQuantity; 
             // on enregistre le panier
             localStorage.setItem('cart', JSON.stringify(cart));
-            console.log('cart :', cart);
+            //console.log('cart :', cart);
         }
 
         // recalcul quantité totale et prix total
@@ -415,8 +430,11 @@ function manageForm () {
                         'Content-Type' : 'application/json'
                         },
                     body : JSON.stringify(contactAndProducts) 
-                }); 
-
+                });
+                // si l'API n'a pas traité la demande, on génère une erreur 
+                if (!response.ok) {
+                    throw new Error('status code retourné par l\'api non compris entre 200 et 299');
+                }
                 const orderResponse = await response.json();
                 console.log('(commande passée : orderResponse.orderId : ', orderResponse.orderId);
                 // redirection vers la page confirmation en intégrant le n° de commande dans l'URL
@@ -424,8 +442,8 @@ function manageForm () {
 
             }
             catch (error) {
-                console.log('erreur fetch api post : ', error);
-                alert('echec de la prise en compte de la commande');
+                console.log('erreur fetch api POST : ', error);
+                alert(' Erreur technique: echec de la prise en compte de la commande');
             }
         }
     }

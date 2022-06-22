@@ -42,22 +42,22 @@ async function fillProduct() {
         .querySelector('.item__img')
         .appendChild(newImg);
 
-    // titre
+    // ajout du nom dans le titre
     document
         .getElementById('title')
         .textContent = product.name;
 
-    // description
+    // ajout de la description
     document
         .getElementById('description')
         .textContent = product.description;
 
-    // prix 
+    // ajout du prix 
     document
         .getElementById('price')
         .textContent = product.price;
 
-    // couleur (on constitue un fragment pour insertion en 1 fois dans le DOM)
+    // création des <option> couleur (on constitue un fragment pour insertion en 1 fois dans le DOM)
     let fragmentColors = document.createDocumentFragment();
     for (let color of product.colors) {
         let newOption = document.createElement('option');
@@ -80,12 +80,17 @@ async function fillProduct() {
 async function retrieveApiByID(Id) {
     try {
         const response = await fetch('http://localhost:3000/api/products/' + Id);
+        // si l'API n'a pas traité la demande, on génère une erreur 
+        if (!response.ok) {
+            throw new Error('status code retourné par l\'api non compris entre 200 et 299');
+        }
         const product = await response.json();
         console.log('produit récupéré / API : ', product);
         return product;
     }
     catch (error) {
         console.log('erreur fetch api get /id : ', error);
+        alert('Erreur technique: echec de la récupération des informations produits');
     }
 }
 
@@ -104,13 +109,17 @@ function toCart() {
 
     // si couleur ok, on vérifie la quantité
     if (checkColorInput(colorInput.value) == true) {
+
         // si quantité ok, on crée un nouvel élément qu'on rajoute au panier
         if (checkQuantityInput(quantityInput.value) == true) {
+
             let cartItem = new Cartitem(productId, colorInput.value, Number(quantityInput.value));
             addCart(cartItem);
+   
         } else {
             quantityInput.focus();
         }
+
     } else {
         document
             .getElementById('colors')
@@ -201,51 +210,3 @@ class Cartitem {
         this.quantity = quantity;
      }
 }
-
-
-/* ICIJCO  ------->   à virer 
-//function createCartItem(productId, color, quantity) {
-//    console.log('reste à créer panier');
-    // code en dur pour tester
-//    let cartItem = new Cartitem(productId, color, quantity);
-//    console.log('cartItem : ', cartItem);
-//    localStorage.setItem('cartitem', JSON.stringify(cartItem));
-//    let retrievedCartItem = JSON.parse(localStorage.getItem('cartitem'));
-//    console.log('retrievedCartItem : ', retrievedCartItem);
-//    addCart(cartItem);
-    
-//    cart.addCart((cartItem));     
-//}
-
-
-/* POO ?
-let cart = {
-    let incart = [],
-
-    addCart(cartItem) {
-        this.cart.push(cartItem);
-        localStorage.setItem('cart', JSON.stringify(this.cart));
-    }
- 
-};
-*/ 
-
-/*test objet vs class
-class Cart {
-    constructor() {
-        this.cart = [];
-    }
-    addCart(cartItem) {
-        this.cart.push(cartItem);
-        localStorage.setItem('cart', JSON.stringify(this.cart));
-    }
-    getCart() {
-        let cart = JSON.parse(localStorage.getItem('cartitem'));
-    }
-
-}
-let cart = new Cart;
-*/ 
-
-
-
